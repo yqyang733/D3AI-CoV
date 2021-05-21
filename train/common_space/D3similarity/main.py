@@ -47,6 +47,7 @@ def train_common_model(config,helper,model,hetrdataset,repeat_nums,flod_nums):
 
         #end a epech
         print("the loss of common model epoch[%d / %d]:is %4.f, time:%d s" % (e+1,config.common_epochs,common_loss,time.time()-begin_time))
+        return common_loss
 
 def train_predict_model(config,helper,predict_model,common_model,hetrdataset,repeat_nums,flod_nums):
 
@@ -102,7 +103,9 @@ def train_predict_model(config,helper,predict_model,common_model,hetrdataset,rep
             torch.save(predict_model.state_dict(),
                        './results/pre_model_parm/repeat_%d_corss_%d.parm' % (repeat_nums, flod_nums))
             #评估模型
-            evaluation_model(config, helper, predict_model, common_model, hetrdataset, repeat_nums, flod_nums)
+        loss, pre_all, lab_all = evaluation_model(config, helper, predict_model, common_model, hetrdataset, repeat_nums, flod_nums)
+
+        return epoch_loss, loss, pre_all, lab_all
 
 def evaluation_model(config,helper,predict_model,common_model,hetrdataset,repeat_nums,flod_nums):
     predict_model.eval()
@@ -113,6 +116,8 @@ def evaluation_model(config,helper,predict_model,common_model,hetrdataset,repeat
     loss = 0
     avg_acc = []
     avg_aupr = []
+    pre_all = []
+    lab_all = []
     with torch.no_grad():
         for i,(dg,pt,tag) in enumerate(hetrdataset.get_test_batch(repeat_nums,flod_nums,config.batch_size)):
             dg = helper.to_longtensor(dg,config.use_gpu)
@@ -121,6 +126,9 @@ def evaluation_model(config,helper,predict_model,common_model,hetrdataset,repeat
 
             smi_common,fas_common = common_model(dg,pt)
             predict, tag = predict_model(smi_common, fas_common, tag)
+
+            pre_all.append(predict)
+            lab_all.append(tag)
 
             tag_loss = F.binary_cross_entropy(predict,tag)
             loss +=tag_loss
@@ -134,6 +142,7 @@ def evaluation_model(config,helper,predict_model,common_model,hetrdataset,repeat
     print("the total_loss of test model:is %4.f, time:%d s" % (loss, time.time() - begin_time))
     print("avg_acc:",np.mean(avg_acc),"avg_aupr:",np.mean(avg_aupr))
 
+    return loss, pre_all, lab_all
 
 if __name__=='__main__':
 
@@ -153,7 +162,8 @@ if __name__=='__main__':
         print("repeat:",str(i),"+++++++++++++++++++++++++++++++++++")
         for j in range(config.fold_nums):
             print(" crossfold:", str(j), "----------------------------")
-
+            if not os.path.exists('./results/result_' + str(j) + "/"):
+                os.mkdirs('./results/result_' + str(j) + "/")
             #initial presentation model
             c_model = Common_model(config)
             p_model = Predict_model()
@@ -161,10 +171,19 @@ if __name__=='__main__':
                 c_model = c_model.cuda()
                 p_model = p_model.cuda()
 
+            loss_rt = "model_loss,predict_loss,val_loss\n"
             for epoch in range(config.num_epochs):
                 print("         epoch:",str(epoch),"zzzzzzzzzzzzzzzz")
-                train_common_model(config,helper,c_model,hetrdataset,i,j)
-                train_predict_model(config,helper,p_model,c_model,hetrdataset,i,j)
+                common_loss = train_common_model(config,helper,c_model,hetrdataset,i,j)
+                predict_loss, val_loss, pre_all, lab_all = train_predict_model(config,helper,p_model,c_model,hetrdataset,i,j)
+                loss_rt = loss_rt + str(common_loss) + "," + str(predict_loss) + "," + str(val_loss) + "\n"
+            with open('./results/result_' + str(j) + "/" + "all_loss_" + str(j) + ".csv") as rt:
+                rt.write(loss_rt)
+            pre_lab = "y_pre,y_lab\n"
+            for i in range(len(pre_all)):
+                pre_lab = pre_lab + str(pre_all[i]) + "," + str(lab_all[i]) + "\n"
+            with open('./results/result_' + str(j) + "/" + "pre_lab_" + str(j) + ".csv") as rt:
+                rt.write(pre_lab)
 
     print("Done!")
     print("All_training time:",time.time()-model_begin_time)

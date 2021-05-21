@@ -10,7 +10,7 @@ class Config():
         self.num_epochs = 60      #The number of epochs to train
         self.common_epochs = 1
         self.predict_epochs = 1
-        self.batch_size = 128     #余下的batch可能比较小，会导致auc报错
+        self.batch_size = 64     #余下的batch可能比较小，会导致auc报错
 
         #和神经网络相关
         self.embedding_size = 64          # The embedding size for every word
