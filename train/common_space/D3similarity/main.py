@@ -177,12 +177,12 @@ if __name__=='__main__':
                 common_loss = train_common_model(config,helper,c_model,hetrdataset,i,j)
                 predict_loss, val_loss, pre_all, lab_all = train_predict_model(config,helper,p_model,c_model,hetrdataset,i,j)
                 loss_rt = loss_rt + str(common_loss) + "," + str(predict_loss) + "," + str(val_loss) + "\n"
-            with open('./results/result_' + str(j) + "/" + "all_loss_" + str(j) + ".csv") as rt:
+            with open('./results/result_' + str(j) + "/" + "all_loss_" + str(j) + ".csv","w") as rt:
                 rt.write(loss_rt)
             pre_lab = "y_pre,y_lab\n"
             for i in range(len(pre_all)):
                 pre_lab = pre_lab + str(pre_all[i]) + "," + str(lab_all[i]) + "\n"
-            with open('./results/result_' + str(j) + "/" + "pre_lab_" + str(j) + ".csv") as rt:
+            with open('./results/result_' + str(j) + "/" + "pre_lab_" + str(j) + ".csv","w") as rt:
                 rt.write(pre_lab)
 
     print("Done!")
