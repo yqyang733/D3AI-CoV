@@ -33,7 +33,7 @@ def ro_curve(y_pred, y_label, figure_file, method_name):
     return 
 
 def col_pic():
-    for i in range(9):
+    for i in range(10):
         y_label = []
         y_pred = []
         with open("y_label_pred_val_" + str(i) + ".csv") as f:

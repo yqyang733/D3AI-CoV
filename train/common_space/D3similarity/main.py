@@ -47,7 +47,7 @@ def train_common_model(config,helper,model,hetrdataset,repeat_nums,flod_nums):
 
         #end a epech
         print("the loss of common model epoch[%d / %d]:is %4.f, time:%d s" % (e+1,config.common_epochs,common_loss,time.time()-begin_time))
-        return common_loss
+    return common_loss.item()
 
 def train_predict_model(config,helper,predict_model,common_model,hetrdataset,repeat_nums,flod_nums):
 
@@ -105,7 +105,7 @@ def train_predict_model(config,helper,predict_model,common_model,hetrdataset,rep
             #评估模型
         loss, pre_all, lab_all = evaluation_model(config, helper, predict_model, common_model, hetrdataset, repeat_nums, flod_nums)
 
-        return epoch_loss, loss, pre_all, lab_all
+    return epoch_loss.item(), loss, pre_all, lab_all
 
 def evaluation_model(config,helper,predict_model,common_model,hetrdataset,repeat_nums,flod_nums):
     predict_model.eval()
@@ -142,7 +142,7 @@ def evaluation_model(config,helper,predict_model,common_model,hetrdataset,repeat
     print("the total_loss of test model:is %4.f, time:%d s" % (loss, time.time() - begin_time))
     print("avg_acc:",np.mean(avg_acc),"avg_aupr:",np.mean(avg_aupr))
 
-    return loss, pre_all, lab_all
+    return loss.item(), pre_all, lab_all
 
 if __name__=='__main__':
 
@@ -163,7 +163,7 @@ if __name__=='__main__':
         for j in range(config.fold_nums):
             print(" crossfold:", str(j), "----------------------------")
             if not os.path.exists('./results/result_' + str(j) + "/"):
-                os.mkdirs('./results/result_' + str(j) + "/")
+                os.makedirs('./results/result_' + str(j) + "/")
             #initial presentation model
             c_model = Common_model(config)
             p_model = Predict_model()
@@ -177,13 +177,37 @@ if __name__=='__main__':
                 common_loss = train_common_model(config,helper,c_model,hetrdataset,i,j)
                 predict_loss, val_loss, pre_all, lab_all = train_predict_model(config,helper,p_model,c_model,hetrdataset,i,j)
                 loss_rt = loss_rt + str(common_loss) + "," + str(predict_loss) + "," + str(val_loss) + "\n"
+                print(str(common_loss) + "," + str(predict_loss) + "," + str(val_loss) + "\n")
             with open('./results/result_' + str(j) + "/" + "all_loss_" + str(j) + ".csv","w") as rt:
                 rt.write(loss_rt)
             pre_lab = "y_pre,y_lab\n"
-            for i in range(len(pre_all)):
-                pre_lab = pre_lab + str(pre_all[i]) + "," + str(lab_all[i]) + "\n"
+            # for i in range(len(pre_all)):
+            #     pre_lab = pre_lab + str(pre_all[i]) + "," + str(lab_all[i]) + "\n"
+            for qq in range(len(pre_all)):
+                a = pre_all[qq].tolist()
+                b = lab_all[qq].tolist()
+                for m in range(len(a)):
+                    pre_lab = pre_lab + str(a[m]) + "," + str(b[m]) + "\n"
             with open('./results/result_' + str(j) + "/" + "pre_lab_" + str(j) + ".csv","w") as rt:
                 rt.write(pre_lab)
+
+            # with open('./results/result_' + str(j) + "/" + "all_loss_" + str(j) + ".csv","w") as rt:
+            #     rt.write("model_loss,predict_loss,val_loss\n")
+            #     for epoch in range(config.num_epochs):
+            #         print("         epoch:",str(epoch),"zzzzzzzzzzzzzzzz")
+            #         common_loss = train_common_model(config,helper,c_model,hetrdataset,i,j)
+            #         predict_loss, val_loss, pre_all, lab_all = train_predict_model(config,helper,p_model,c_model,hetrdataset,i,j)
+            #         rt.write(str(common_loss) + "," + str(predict_loss) + "," + str(val_loss) + "\n")
+            #         print(str(common_loss) + "," + str(predict_loss) + "," + str(val_loss) + "\n")
+            #     pre_lab = "y_pre,y_lab\n"
+            #     for i in range(len(pre_all)):
+            #         a = pre_all[i].tolist()
+            #         b = lab_all[i].tolist()
+            #         for m in range(len(a)):
+            #             pre_lab = pre_lab + str(a[m]) + "," + str(b[m]) + "\n"
+            #     with open('./results/result_' + str(j) + "/" + "pre_lab_" + str(j) + ".csv","w") as rt:
+            #         rt.write(pre_lab)
+
 
     print("Done!")
     print("All_training time:",time.time()-model_begin_time)
