@@ -1,5 +1,5 @@
 <h3 align="center">
-<p> D3SimilarityV2.0<br></h3>
+<p> D3AI-CoV<br></h3>
 
 ## News   
 
